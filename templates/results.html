@@ -1,76 +1,60 @@
-
-<!doctype html>
-<html lang="en">
-<head>
+{% extends "base.html" %}
 {% load static %}
-  <meta charset="utf-8" />
-  <title>Results · BizPlan</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Base styles -->
-  <link rel="stylesheet" href="{% static 'core/styles.css' %}" />
+{% block title %}Results · AI Business Plan{% endblock %}
+
+{% block head %}
   <!-- Results-only extras -->
   <link rel="stylesheet" href="{% static 'core/results.css' %}" />
+{% endblock %}
 
-  <!-- Minimal markdown renderer (no build tools) -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% block body %}
+  <section class="panel hero">
+    <div class="hero-meta">
+      <h1 class="title">Your Business Plan</h1>
+      <p class="subtitle">Generated from your answers + Spain-focused research</p>
+    </div>
+    <div class="hero-actions">
+      <button id="copy-md" class="btn">Copy Markdown</button>
+      <button id="download-md" class="btn">Download .md</button>
+      <button id="download-docx" class="btn">Download .docx</button>
+      <button id="print-pdf" class="btn secondary">Print / Save PDF</button>
+    </div>
+  </section>
+
+  <section class="panel grid">
+    <aside class="toc-card">
+      <h2>Contents</h2>
+      <div id="toc" class="toc"></div>
+      <div class="meta">
+        <div class="meta-item"><span id="wordcount">–</span> words</div>
+        <div class="meta-item"><span id="sectioncount">–</span> sections</div>
+        <div class="meta-item"><span id="genstamp">–</span></div>
+      </div>
+    </aside>
+
+    <article class="doc-card">
+      {% if not plan_html %}
+        <div id="alert" class="alert">
+          No plan found. Go to the <a href="/chat">Chat</a> page to start an interview.
+        </div>
+      {% else %}
+        <div id="doc" class="markdown-body">
+          {{ plan_html|safe }}
+        </div>
+        <div id="raw-md" style="display: none;">{{ plan_md }}</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="panel refs">
+    <h2>References</h2>
+    <ol id="refs-list" class="refs-list"></ol>
+  </section>
+{% endblock %}
+
+{% block scripts %}
   <!-- Create .docx client-side (optional) -->
   <script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.min.js"></script>
-</head>
-<body class="page results">
-  <header class="appbar">
-    <div class="brand">BizPlan <span class="chip">Spain</span></div>
-    <nav class="actions">
-      <a href="/chat" class="btn ghost">← Back to Chat</a>
-      <button id="toggle-theme" class="btn ghost" title="Toggle theme">☾</button>
-    </nav>
-  </header>
-
-  <main class="container">
-    <section class="panel hero">
-      <div class="hero-meta">
-        <h1 class="title">Your Business Plan</h1>
-        <p class="subtitle">Generated from your answers + Spain-focused research</p>
-      </div>
-      <div class="hero-actions">
-        <button id="copy-md" class="btn">Copy Markdown</button>
-        <button id="download-md" class="btn">Download .md</button>
-        <button id="download-docx" class="btn">Download .docx</button>
-        <button id="print-pdf" class="btn primary">Print / Save PDF</button>
-      </div>
-    </section>
-
-    <section class="panel grid">
-      <aside class="toc-card">
-        <h2>Contents</h2>
-        <div id="toc" class="toc"></div>
-        <div class="meta">
-          <div class="meta-item"><span id="wordcount">–</span> words</div>
-          <div class="meta-item"><span id="sectioncount">–</span> sections</div>
-          <div class="meta-item"><span id="genstamp">–</span></div>
-        </div>
-      </aside>
-
-      <article class="doc-card">
-        <div id="alert" class="alert hidden"></div>
-        <div id="loading" class="loading">
-          <div class="spinner"></div>
-          <div>Fetching your plan…</div>
-        </div>
-        <div id="doc" class="markdown-body hidden"></div>
-      </article>
-    </section>
-
-    <section class="panel refs">
-      <h2>References (auto-extracted)</h2>
-      <ol id="refs-list" class="refs-list"></ol>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <small>Made for Spain: competitors, EUR sizing, and regulations are auto-researched.</small>
-  </footer>
-
-<script defer src="{% static 'core/results.js' %}"></script>
-</body>
-</html>
+  <script defer src="{% static 'core/results.js' %}"></script>
+{% endblock %}

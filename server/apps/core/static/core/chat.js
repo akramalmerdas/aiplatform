@@ -31,8 +31,22 @@ function typing(on = true) {
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
+function toast(text, type = 'error') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    setTimeout(() => t.remove(), 500);
+  }, 3000);
+}
+
 async function sendToServer(message) {
   typing(true);
+  sendBtn.disabled = true;
+  input.disabled = true;
+
   try {
     const res = await fetch('/api/message', {
       method: 'POST',
@@ -40,56 +54,62 @@ async function sendToServer(message) {
       body: JSON.stringify({ message })
     });
 
-    // Try to parse JSON; if parsing fails, show raw text.
+    typing(false);
     let data = null;
     const raw = await res.text();
-    try { data = JSON.parse(raw); } catch { data = { error: 'Non-JSON response', raw }; }
-
-    typing(false);
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = { error: 'Non-JSON response from server', raw };
+    }
 
     if (!res.ok) {
-      bubble(data.error || `Server error ${res.status}`, 'bot');
+      toast(data.error || `Server error: ${res.status}`);
       console.error('HTTP error', res.status, data);
+      // Re-enable input on error
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
       return;
     }
 
-    // Accept either {bot: "..."} or {reply: "..."}
-    const botText = (data && (data.bot ?? data.reply)) || '';
-    console.log('server payload:', data);
-    console.log('botText:', botText);
-
+    const botText = data.bot || data.reply || '';
     if (!botText.trim()) {
-      // Fallback so the UI always shows something
       bubble('(No response text returned. Please try again.)', 'bot');
-      return;
+    } else {
+      bubble(botText, 'bot');
     }
-
-    bubble(botText, 'bot');
 
     if (data.done && data.results_url && resultsBtn) {
       resultsBtn.classList.remove('d-none');
       resultsBtn.href = data.results_url;
-      input.disabled = true;
-      sendBtn.disabled = true;
+      // Keep input disabled
+    } else {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
     }
   } catch (e) {
     typing(false);
     console.error('Network/JS error:', e);
-    bubble('Network error. Check the console for details.', 'bot');
+    toast('Network error. Check console for details.');
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
   }
 }
 
 let sending = false;
 async function doSend() {
-  if (sending) return;
+  if (sending || input.disabled) return;
   sending = true;
 
   const msg = (input?.value || '').trim();
   if (input) input.value = '';
 
-  // Show user bubble (even for empty kickoff)
-  if (msg === '') bubble('(starting)…', 'user');
-  else bubble(msg, 'user');
+  if (msg) {
+      bubble(msg, 'user');
+  }
 
   await sendToServer(msg);
   sending = false;
@@ -102,13 +122,9 @@ if (input) {
   });
 }
 
-// Auto-start interview: first question without typing anything
+// Auto-start interview
 window.addEventListener('DOMContentLoaded', () => {
-  // Kick off with an empty message — server will return the first question
+  bubble('(Starting interview…)', 'user');
   sendToServer('');
   if (input) input.focus();
-});
-console.info("[core/chat.js] loaded");
-document.addEventListener('DOMContentLoaded', () => {
-  console.info("[core/chat.js] DOM ready");
 });

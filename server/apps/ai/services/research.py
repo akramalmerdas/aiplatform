@@ -1,29 +1,55 @@
-import os, re, time, requests
-from typing import Dict, Any, List
+import os
+import re
+import time
+from typing import Any, Dict, List
+
+import requests
 
 # -------- Tunables --------
-MIN_RESULTS_PER_PHASE = 6          # if fewer, widen to next phase
-MAX_RESULTS_PER_QUERY = 8          # per Tavily call
-RECENCY_DAYS = 365                 # bias to the last year
+MIN_RESULTS_PER_PHASE = 6  # if fewer, widen to next phase
+MAX_RESULTS_PER_QUERY = 8  # per Tavily call
+RECENCY_DAYS = 365  # bias to the last year
 
 # Priority/quality domains
 PHASE1_AUTHORITIES = [
-    "boe.es", "aeat.es", "aepd.es", "ine.es", "cnmc.es",
-    "eur-lex.europa.eu", "europa.eu"
+    "boe.es",
+    "aeat.es",
+    "aepd.es",
+    "ine.es",
+    "cnmc.es",
+    "eur-lex.europa.eu",
+    "europa.eu",
 ]
 PHASE2_INSTITUTIONS = [
-    "camara.es", "datos.gob.es", "lamoncloa.gob.es",
-    "industria.gob.es", "mineco.gob.es", "seg-social.es", "seguridad-social.es"
+    "camara.es",
+    "datos.gob.es",
+    "lamoncloa.gob.es",
+    "industria.gob.es",
+    "mineco.gob.es",
+    "seg-social.es",
+    "seguridad-social.es",
 ]
 PHASE3_INDUSTRY_MEDIA = [
     # Business media (.es)
-    "expansion.com", "cincodias.elpais.com", "eleconomista.es",
+    "expansion.com",
+    "cincodias.elpais.com",
+    "eleconomista.es",
     # International quality/statistics
-    "oecd.org", "worldbank.org", "imf.org", "ec.europa.eu"
+    "oecd.org",
+    "worldbank.org",
+    "imf.org",
+    "ec.europa.eu",
 ]
 EXCLUDE_DOMAINS = [
-    "pinterest.com", "quora.com", "reddit.com", "youtube.com", "tiktok.com",
-    "linkedin.com/pulse", "facebook.com", "instagram.com", "medium.com"
+    "pinterest.com",
+    "quora.com",
+    "reddit.com",
+    "youtube.com",
+    "tiktok.com",
+    "linkedin.com/pulse",
+    "facebook.com",
+    "instagram.com",
+    "medium.com",
 ]
 
 SEED_SYNONYMS = {
@@ -31,55 +57,83 @@ SEED_SYNONYMS = {
     "health": ["sanidad", "salud digital", "marcado CE", "dispositivo sanitario"],
     "edtech": ["formación", "plataformas educativas", "LMS"],
     "energy": ["energía", "autoconsumo", "fotovoltaica", "CNMC"],
-    "consulting": ["asesoría", "trámites", "constitución", "licencia",
-                   "site:boe.es", "site:aeat.es", "site:aepd.es", "site:camara.es"],
-    "startup": ["constitución de empresa", "sociedad limitada", "autónomos",
-                "site:boe.es", "site:camara.es"],
+    "consulting": [
+        "asesoría",
+        "trámites",
+        "constitución",
+        "licencia",
+        "site:boe.es",
+        "site:aeat.es",
+        "site:aepd.es",
+        "site:camara.es",
+    ],
+    "startup": [
+        "constitución de empresa",
+        "sociedad limitada",
+        "autónomos",
+        "site:boe.es",
+        "site:camara.es",
+    ],
 }
+
 
 def _norm(t: str) -> str:
     return re.sub(r"\s+", " ", (t or "")).strip()
 
+
 def _uniq(seq: List[str]) -> List[str]:
-    seen=set(); out=[]
+    seen = set()
+    out = []
     for x in seq:
-        k=(x or "").strip().lower()
+        k = (x or "").strip().lower()
         if k and k not in seen:
-            seen.add(k); out.append(x)
+            seen.add(k)
+            out.append(x)
     return out
+
 
 def _mk_queries(answers: Dict[str, Any]) -> List[str]:
     # Industry/idea in ES-friendly form
     industry = _norm(answers.get("industry") or answers.get("idea_summary") or "")
-    base = _norm(" ".join([industry, answers.get("solution",""), answers.get("problem","")]))
+    base = _norm(
+        " ".join([industry, answers.get("solution", ""), answers.get("problem", "")])
+    )
     es_terms = []
     for key, terms in SEED_SYNONYMS.items():
         if key in industry.lower():
             es_terms = terms
             break
 
-    return _uniq([
-        f"{industry} Spain competitors site:.es",
-        f"{industry} Spain market size EUR TAM SAM SOM",
-        f"{base} tendencias España regulaciones {' '.join(es_terms)}",
-        f"{industry} Spain regulations licencia cumplimiento {' '.join(es_terms)}",
-        f"{industry} Spain distribution channels B2B B2C",
-        f"{industry} Spain startups funding inversores"
-    ])
+    return _uniq(
+        [
+            f"{industry} Spain competitors site:.es",
+            f"{industry} Spain market size EUR TAM SAM SOM",
+            f"{base} tendencias España regulaciones {' '.join(es_terms)}",
+            f"{industry} Spain regulations licencia cumplimiento {' '.join(es_terms)}",
+            f"{industry} Spain distribution channels B2B B2C",
+            f"{industry} Spain startups funding inversores",
+        ]
+    )
+
 
 def _pick_competitors(results: List[Dict[str, str]], maxn=8) -> List[str]:
-    names=[]
+    names = []
     for r in results or []:
-        title=_norm(r.get("title"))
-        if not title: continue
-        title=re.sub(r"\s*[\-|–|:|•]\s*.*$", "", title)
+        title = _norm(r.get("title"))
+        if not title:
+            continue
+        title = re.sub(r"\s*[\-|–|:|•]\s*.*$", "", title)
         if 2 <= len(title.split()) <= 6:
             names.append(title)
     return _uniq(names)[:maxn]
 
-def _tavily_search(query: str, include_domains: List[str] = None) -> List[Dict[str,str]]:
+
+def _tavily_search(
+    query: str, include_domains: List[str] = None
+) -> List[Dict[str, str]]:
     tavily = os.getenv("TAVILY_API_KEY")
-    if not tavily: return []
+    if not tavily:
+        return []
 
     payload = {
         "query": query,
@@ -90,7 +144,7 @@ def _tavily_search(query: str, include_domains: List[str] = None) -> List[Dict[s
         "include_images": False,
         "topic": "general",
         "days": RECENCY_DAYS,
-        "exclude_domains": EXCLUDE_DOMAINS
+        "exclude_domains": EXCLUDE_DOMAINS,
     }
     if include_domains:
         payload["include_domains"] = include_domains
@@ -99,51 +153,69 @@ def _tavily_search(query: str, include_domains: List[str] = None) -> List[Dict[s
         "https://api.tavily.com/search",
         headers={"Authorization": f"Bearer {tavily}"},
         json=payload,
-        timeout=35
+        timeout=35,
     )
     r.raise_for_status()
     data = r.json()
-    out=[]
+    out = []
     for it in data.get("results", []):
-        out.append({
-            "title": it.get("title",""),
-            "url": it.get("url",""),
-            "content": it.get("raw_content") or it.get("content") or ""
-        })
+        out.append(
+            {
+                "title": it.get("title", ""),
+                "url": it.get("url", ""),
+                "content": it.get("raw_content") or it.get("content") or "",
+            }
+        )
     # Push the synthesized answer as a pseudo-result (helps grounding)
-    ans = _norm(data.get("answer",""))
+    ans = _norm(data.get("answer", ""))
     if ans:
-        out.insert(0, {"title":"Tavily synthesis", "url":"", "content": ans})
+        out.insert(0, {"title": "Tavily synthesis", "url": "", "content": ans})
     return out
 
-def _serper_search(query: str) -> List[Dict[str,str]]:
+
+def _serper_search(query: str) -> List[Dict[str, str]]:
     serper = os.getenv("SERPER_API_KEY") or os.getenv("SERPAPI_API_KEY")
-    if not serper: return []
+    if not serper:
+        return []
     r = requests.post(
         "https://google.serper.dev/search",
-        headers={"X-API-KEY": serper, "Content-Type":"application/json"},
+        headers={"X-API-KEY": serper, "Content-Type": "application/json"},
         json={"q": query, "num": 8},
-        timeout=25
+        timeout=25,
     )
     r.raise_for_status()
     data = r.json()
-    out=[]
+    out = []
     for it in data.get("organic", []):
-        out.append({"title": it.get("title",""), "url": it.get("link",""), "content": it.get("snippet","")})
+        out.append(
+            {
+                "title": it.get("title", ""),
+                "url": it.get("link", ""),
+                "content": it.get("snippet", ""),
+            }
+        )
     return out
 
-def _wikipedia_search(query: str) -> List[Dict[str,str]]:
+
+def _wikipedia_search(query: str) -> List[Dict[str, str]]:
     r = requests.get(
         "https://en.wikipedia.org/w/api.php",
-        params={"action":"opensearch","search": query, "limit": 5, "namespace": 0, "format":"json"},
-        timeout=20
+        params={
+            "action": "opensearch",
+            "search": query,
+            "limit": 5,
+            "namespace": 0,
+            "format": "json",
+        },
+        timeout=20,
     )
     r.raise_for_status()
     data = r.json()
-    out=[]
-    for t,u in zip(data[1], data[3]):
+    out = []
+    for t, u in zip(data[1], data[3]):
         out.append({"title": t, "url": u, "content": ""})
     return out
+
 
 def research_market(answers: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -152,7 +224,7 @@ def research_market(answers: Dict[str, Any]) -> Dict[str, Any]:
     Falls back to Serper/Wikipedia when Tavily is missing.
     """
     queries = _mk_queries(answers)
-    all_results: List[Dict[str,str]] = []
+    all_results: List[Dict[str, str]] = []
 
     have_tavily = bool(os.getenv("TAVILY_API_KEY"))
     phases = [
@@ -163,7 +235,7 @@ def research_market(answers: Dict[str, Any]) -> Dict[str, Any]:
     ]
 
     for q in queries:
-        phase_hits=[]
+        phase_hits = []
         if have_tavily:
             for phase_name, domains in phases:
                 try:
@@ -189,17 +261,20 @@ def research_market(answers: Dict[str, Any]) -> Dict[str, Any]:
         time.sleep(0.3)
 
     # Post-process & summarise
-    sources=[]; facts=[]
-    seen_urls=set()
+    sources = []
+    facts = []
+    seen_urls = set()
     for r in all_results:
-        title=_norm(r.get("title")); url=(r.get("url") or "").strip()
+        title = _norm(r.get("title"))
+        url = (r.get("url") or "").strip()
         if title and url and url not in seen_urls:
             seen_urls.add(url)
             sources.append({"title": title, "url": url})
 
     # Longer snippets preferred for grounding
     for r in all_results[:20]:
-        txt=_norm(r.get("content") or r.get("title")); url=r.get("url") or ""
+        txt = _norm(r.get("content") or r.get("title"))
+        url = r.get("url") or ""
         if txt:
             facts.append({"fact": txt[:450], "source": url})
 
@@ -211,5 +286,5 @@ def research_market(answers: Dict[str, Any]) -> Dict[str, Any]:
         "competitors": competitors,
         "facts": facts[:14],
         "sources": sources[:20],
-        "queries": queries
+        "queries": queries,
     }

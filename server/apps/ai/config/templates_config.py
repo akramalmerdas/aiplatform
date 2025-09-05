@@ -12,24 +12,38 @@ TEMPLATES = {
             "Products and/or Services",
             "Market Assessment",
             "Strategic Implementation",
-            "Financial Plan"
+            "Financial Plan",
         ],
         "subsections": {
-            "Vision/Mission Statement and Goals": ["A. Vision Statement","B. Goals and Objectives","C. Keys to Success"],
+            "Vision/Mission Statement and Goals": [
+                "A. Vision Statement",
+                "B. Goals and Objectives",
+                "C. Keys to Success",
+            ],
             "Company Summary": [
-                "A. Company Background","B. Resources, Facilities and Equipment","C. Marketing Methods",
-                "D. Management and Organization","E. Ownership Structure","F. Social Responsibility","G. Internal Analysis"
+                "A. Company Background",
+                "B. Resources, Facilities and Equipment",
+                "C. Marketing Methods",
+                "D. Management and Organization",
+                "E. Ownership Structure",
+                "F. Social Responsibility",
+                "G. Internal Analysis",
             ],
             "Market Assessment": [
-                "A. Examining the General Market","B. Customer Analysis","C. Industry Analysis","D. Strategic Alternatives"
+                "A. Examining the General Market",
+                "B. Customer Analysis",
+                "C. Industry Analysis",
+                "D. Strategic Alternatives",
             ],
             "Strategic Implementation": [
-                "A. Production","B. Resource Needs","C. Sourcing/Procurement Strategy","D. Marketing Strategy","E. Performance Standards"
+                "A. Production",
+                "B. Resource Needs",
+                "C. Sourcing/Procurement Strategy",
+                "D. Marketing Strategy",
+                "E. Performance Standards",
             ],
-            "Financial Plan": [
-                "A. Financial Projections","B. Contingency Plan"
-            ]
-        }
+            "Financial Plan": ["A. Financial Projections", "B. Contingency Plan"],
+        },
     },
     "template_b_step1": {
         "display_name": "Business Plan Template (B)",
@@ -50,7 +64,7 @@ TEMPLATES = {
             "12. Financial Plan",
             "13. Exit Strategy",
             "14. Conclusion and Recommendations",
-            "15. Annexures"
-        ]
-    }
+            "15. Annexures",
+        ],
+    },
 }

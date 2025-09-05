@@ -1,47 +1,32 @@
-// results.js — fetch plan, render Markdown, build TOC, exports, theme toggle
+// results.js — build TOC, exports, theme toggle from server-rendered content
 
 const $ = (s) => document.querySelector(s);
 
 const docEl = $('#doc');
 const tocEl = $('#toc');
 const refsEl = $('#refs-list');
-const loadingEl = $('#loading');
-const alertEl = $('#alert');
-
-async function fetchPlan() {
-  const res = await fetch('/api/last-plan', { method: 'GET' });
-  const data = await res.json().catch(() => ({}));
-  return (data && data.plan) || '';
-}
-
-function renderMarkdown(md) {
-  // Configure marked for safe-ish HTML
-  marked.setOptions({
-    breaks: true,
-    gfm: true
-  });
-  const html = marked.parse(md);
-  docEl.innerHTML = html;
-}
+const rawMdEl = $('#raw-md');
 
 function buildTOC() {
+  if (!tocEl || !docEl) return;
   tocEl.innerHTML = '';
-  const headings = docEl.querySelectorAll('h1, h2');
+  const headings = docEl.querySelectorAll('h1, h2, h3');
   let sectionCount = 0;
   headings.forEach((h, i) => {
     if (!h.id) h.id = 'h-' + i;
     const a = document.createElement('a');
     a.href = `#${h.id}`;
-    a.innerHTML = (h.tagName === 'H1')
-      ? `${h.textContent}`
-      : `<small>${h.textContent}</small>`;
+    a.innerHTML = h.textContent;
+    a.className = `toc-item toc-${h.tagName.toLowerCase()}`;
     tocEl.appendChild(a);
     sectionCount++;
   });
-  $('#sectioncount').textContent = sectionCount || '–';
+  const sectionCountEl = $('#sectioncount');
+  if (sectionCountEl) sectionCountEl.textContent = sectionCount || '–';
 }
 
 function extractReferences() {
+  if (!refsEl || !docEl) return;
   refsEl.innerHTML = '';
   const links = Array.from(docEl.querySelectorAll('a[href]'))
     .map(a => a.getAttribute('href'))
@@ -56,73 +41,15 @@ function extractReferences() {
 }
 
 function updateMeta(md) {
-  const words = (md.trim().match(/\S+/g) || []).length;
-  $('#wordcount').textContent = words.toLocaleString();
-  const ts = new Date();
-  $('#genstamp').textContent = ts.toLocaleString();
-}
-
-async function init() {
-  try {
-    const md = await fetchPlan();
-    if (!md || !md.trim()) {
-      alertEl.classList.remove('hidden');
-      alertEl.textContent = '(No plan yet. Go to Chat and type RESULTS after answering questions.)';
-      loadingEl.classList.add('hidden');
-      return;
-    }
-
-    renderMarkdown(md);
-    buildTOC();
-    extractReferences();
-    updateMeta(md);
-
-    loadingEl.classList.add('hidden');
-    docEl.classList.remove('hidden');
-
-    // Actions
-    $('#copy-md').onclick = async () => {
-      await navigator.clipboard.writeText(md);
-      toast('Markdown copied');
-    };
-    $('#download-md').onclick = () => {
-      downloadFile('business_plan.md', md, 'text/markdown;charset=utf-8');
-    };
-    $('#download-docx').onclick = () => {
-      const wrapper = `
-        <!doctype html><html><head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, Helvetica, sans-serif; }
-            h1,h2,h3 { margin: 8px 0; }
-            table { border-collapse: collapse; width: 100%; }
-            th,td { border: 1px solid #ddd; padding: 6px; }
-          </style>
-        </head><body>${docEl.innerHTML}</body></html>`;
-      const blob = window.htmlDocx.asBlob(wrapper);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'business_plan.docx'; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 500);
-    };
-    $('#print-pdf').onclick = () => window.print();
-
-    // Theme toggle
-    const root = document.documentElement;
-    const toggle = $('#toggle-theme');
-    const setTheme = (mode) => {
-      if (mode === 'light') root.classList.add('light');
-      else root.classList.remove('light');
-      localStorage.setItem('theme', mode);
-    };
-    const saved = localStorage.getItem('theme') || 'dark';
-    setTheme(saved);
-    toggle.onclick = () => setTheme(root.classList.contains('light') ? 'dark' : 'light');
-
-  } catch (e) {
-    console.error(e);
-    alertEl.classList.remove('hidden');
-    alertEl.textContent = 'Failed to load the plan.';
+  const wordCountEl = $('#wordcount');
+  if (wordCountEl) {
+      const words = (md.trim().match(/\S+/g) || []).length;
+      wordCountEl.textContent = words.toLocaleString();
+  }
+  const genStampEl = $('#genstamp');
+  if(genStampEl) {
+      const ts = new Date();
+      genStampEl.textContent = ts.toLocaleDateString();
   }
 }
 
@@ -134,19 +61,72 @@ function downloadFile(filename, content, mime) {
   setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
-function toast(text) {
-  const t = document.createElement('div');
-  t.textContent = text;
-  t.style.position = 'fixed';
-  t.style.bottom = '16px';
-  t.style.right = '16px';
-  t.style.padding = '8px 12px';
-  t.style.background = 'rgba(0,0,0,.75)';
-  t.style.color = '#fff';
-  t.style.borderRadius = '10px';
-  t.style.zIndex = '9999';
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 1400);
+function toast(text, type = 'success') {
+    const t = document.createElement('div');
+    t.className = `toast ${type}`;
+    t.textContent = text;
+    document.body.appendChild(t);
+    setTimeout(() => {
+      t.style.opacity = '0';
+      setTimeout(() => t.remove(), 500);
+    }, 2000);
+}
+
+
+function init() {
+  if (!docEl) return;
+
+  const md = rawMdEl ? rawMdEl.textContent.trim() : '';
+
+  buildTOC();
+  extractReferences();
+  updateMeta(md);
+
+  // Actions
+  const copyBtn = $('#copy-md');
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      await navigator.clipboard.writeText(md);
+      toast('Markdown copied!');
+    };
+  }
+
+  const downloadMdBtn = $('#download-md');
+  if (downloadMdBtn) {
+    downloadMdBtn.onclick = () => {
+      downloadFile('business_plan.md', md, 'text/markdown;charset=utf-8');
+    };
+  }
+
+  const downloadDocxBtn = $('#download-docx');
+  if (downloadDocxBtn) {
+      downloadDocxBtn.onclick = () => {
+      if (typeof htmlDocx === 'undefined') {
+          toast('Could not create .docx file.', 'error');
+          return;
+      }
+      const wrapper = `<!doctype html><html><head><meta charset="utf-8"></head><body>${docEl.innerHTML}</body></html>`;
+      const blob = htmlDocx.asBlob(wrapper);
+      downloadFile('business_plan.docx', blob, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    };
+  }
+
+  const printBtn = $('#print-pdf');
+  if(printBtn) printBtn.onclick = () => window.print();
+
+  // Theme toggle
+  const root = document.documentElement;
+  const toggle = $('#toggle-theme');
+  if (toggle) {
+      const setTheme = (mode) => {
+        root.classList.remove('light', 'dark');
+        root.classList.add(mode);
+        localStorage.setItem('theme', mode);
+      };
+      const saved = localStorage.getItem('theme') || 'dark';
+      setTheme(saved);
+      toggle.onclick = () => setTheme(root.classList.contains('light') ? 'dark' : 'light');
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

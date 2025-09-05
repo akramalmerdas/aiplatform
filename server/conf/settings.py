@@ -1,9 +1,12 @@
+import os
+import sys
 from pathlib import Path
-import os, sys, environ
+
+import environ
 
 # --- Paths ---
-BASE_DIR = Path(__file__).resolve().parent.parent   # .../server
-REPO_ROOT = BASE_DIR.parent                         # repo root (D:\AIPlatform)
+BASE_DIR = Path(__file__).resolve().parent.parent  # .../server
+REPO_ROOT = BASE_DIR.parent  # repo root (D:\AIPlatform)
 
 # Make repo root importable if you still import modules from there
 if str(REPO_ROOT) not in sys.path:
@@ -11,7 +14,7 @@ if str(REPO_ROOT) not in sys.path:
 
 # --- Environment (.env at repo root) ---
 env = environ.Env(
-    # DJANGO_DEBUG=(bool, True),
+    DJANGO_DEBUG=(bool, True),
 )
 env_file = REPO_ROOT / ".env"
 if env_file.exists():
@@ -25,9 +28,14 @@ CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
 # --- Applications ---
 INSTALLED_APPS = [
-    "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",
-    "django.contrib.sessions", "django.contrib.messages", "django.contrib.staticfiles",
-    "apps.core", "apps.ai",   # add "apps.experts" later when you actually create it
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "apps.core",
+    "apps.ai",  # add "apps.experts" later when you actually create it
 ]
 
 MIDDLEWARE = [
@@ -71,7 +79,12 @@ DATABASES = {
 
 # --- Passwords ---
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": (
+            "django.contrib.auth.password_validation."
+            "UserAttributeSimilarityValidator"
+        )
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -79,14 +92,14 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- I18N ---
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"     # set to 'Africa/Kigali' if you prefer
+TIME_ZONE = "UTC"  # set to 'Africa/Kigali' if you prefer
 USE_I18N = True
 USE_TZ = True
 
 # --- Static files ---
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]       # points to server/static
-STATIC_ROOT = str(BASE_DIR / "staticfiles")    # for collectstatic later
+STATICFILES_DIRS = [BASE_DIR / "static"]  # points to server/static
+STATIC_ROOT = str(BASE_DIR / "staticfiles")  # for collectstatic later
 
 # --- Defaults ---
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
