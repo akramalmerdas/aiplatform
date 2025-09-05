@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  {% load static %}
+  <meta charset="utf-8"/>
+  <title>{% block title %}AI Business Plan{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <style>
+    /* Minimal styles for chat bubbles if your styles.css is empty */
+    body { font-family: system-ui, Arial, sans-serif; background:#0f172a; color:#e2e8f0; }
+    .container { max-width: 900px; margin: 24px auto; padding: 16px; background:#111827; border-radius:16px; }
+    .navbar { display:flex; gap:16px; align-items:center; margin-bottom: 12px; }
+    .navbar a { color:#93c5fd; text-decoration:none; }
+    .navbar a:hover { text-decoration:underline; }
+    .btn { padding:10px 16px; background:#2563eb; color:#fff; border:none; border-radius:10px; cursor:pointer; }
+    .btn.secondary { background:#374151; }
+    .btn:disabled { opacity:0.6; cursor:not-allowed; }
+    .muted { color:#94a3b8; }
+    .section { margin-top: 20px; }
+    /* Chat */
+    #chat-window { background:#0b1220; border:1px solid #374151; border-radius:10px; padding:12px; height:52vh; overflow:auto; }
+    .msg { padding:10px 12px; border-radius:12px; margin:8px 0; max-width:85%; white-space:pre-wrap; }
+    .msg.user { background:#1f2937; margin-left:auto; }
+    .msg.bot { background:#0e1a2b; border:1px solid #1f2a44; }
+    .typing { opacity:0.8; font-style:italic; }
+    .bar { display:flex; gap:8px; margin-top:10px; }
+    .bar input[type="text"] { flex:1; padding:10px; border-radius:10px; border:1px solid #374151; background:#0b1220; color:#e5e7eb; }
+    .row { display:grid; grid-template-columns: 220px 1fr; gap:12px; align-items:start; margin:10px 0; }
+    pre.output { white-space: pre-wrap; background:#0b1220; border:1px solid #374151; padding:16px; border-radius:10px; min-height:220px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="container">
+    <div class="navbar">
+      <a href="/">Home</a>
+      <a href="/chat">Chat</a>
+      <a href="/results">Results</a>
+      <a href="/api/health" target="_blank">Health</a>
+    </div>
+    {% block body %}{% endblock %}
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Chat · AI Business Plan{% endblock %}
+{% block body %}
+<link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  <h1>Chat</h1>
+  <p class="muted">Answer one question at a time. When the assistant says it’s enough, type <code>RESULTS</code> and open the Results page.</p>
+
+  <div id="chat-window"></div>
+
+  <div class="bar">
+    <input id="user-input" type="text" placeholder="Type your message…"/>
+    <button id="send-btn" class="btn">Send</button>
+    <a id="results-btn" class="btn secondary d-none" href="/results">Results</a>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script defer src="{% static 'core/chat.js' %}"></script>
+  <script>
+    // If your existing chat.js expects '/api/message', keep that route;
+    // or switch chat.js to call '/api/chat' with full history.
+    // The page just loads the JS and provides the DOM hooks.
+  </script>
+{% endblock %}

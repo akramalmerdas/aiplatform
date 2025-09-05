@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Home · AI Business Plan{% endblock %}
+{% block body %}
+  <h1>AI Business Plan</h1>
+  <p class="muted">Chat with the assistant to collect your inputs step-by-step, then view the generated plan.</p>
+
+  <div class="section">
+    <a class="btn" href="/chat">Open Chat</a>
+    <a class="btn secondary" href="/results">View Results</a>
+  </div>
+
+  <div class="section">
+    <h2>How it works</h2>
+    <ol>
+      <li>Go to <strong>Chat</strong> and answer the assistant’s short questions.</li>
+      <li>When ready, type <code>RESULTS</code> to generate the plan.</li>
+      <li>Open <strong>Results</strong> to view / copy your business plan.</li>
+    </ol>
+  </div>
+{% endblock %}
