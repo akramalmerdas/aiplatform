@@ -98,7 +98,7 @@ USE_TZ = True
 
 # --- Static files ---
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]  # points to server/static
+STATICFILES_DIRS = []  # No project-level static assets for now
 STATIC_ROOT = str(BASE_DIR / "staticfiles")  # for collectstatic later
 
 # --- Defaults ---
